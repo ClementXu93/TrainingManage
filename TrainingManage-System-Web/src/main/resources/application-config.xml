@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:dubbo="http://code.alibabatech.com/schema/dubbo" xmlns:motan="http://api.weibo.com/schema/motan"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+         http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+         http://www.springframework.org/schema/context
+         http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		http://code.alibabatech.com/schema/dubbo
+		http://code.alibabatech.com/schema/dubbo/dubbo.xsd
+   		http://api.weibo.com/schema/motan
+   		http://api.weibo.com/schema/motan.xsd">
+    <!-- 扫描注解 -->
+    <context:component-scan base-package="cn.cqbti">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+        <context:exclude-filter type="annotation" expression="org.springframework.cache.annotation.EnableCaching" />
+    </context:component-scan>
+    <dubbo:application name="cqbti_consumer"/>
+
+    <dubbo:registry address="zookeeper://127.0.0.1:2181"/>
+    <!--调用dubbo服务 目前没找到好的方法 只能通过xml配置完成reference-->
+    <dubbo:reference id="testService"
+                     interface="cn.cqbti.core.service.TestService"  version="1.0" timeout="20000" check="false"/>
+</beans>

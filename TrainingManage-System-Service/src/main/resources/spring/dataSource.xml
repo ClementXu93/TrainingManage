@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd
+	    http://www.springframework.org/schema/tx
+	    http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+    <bean id="stat-filter" class="com.alibaba.druid.filter.stat.StatFilter" lazy-init="true">
+        <description>状态过滤器</description>
+        <property name="slowSqlMillis" value="3000" />
+        <property name="logSlowSql" value="true" />
+        <property name="mergeSql" value="true" />
+    </bean>
+    <bean id="readDataSource" class="com.alibaba.druid.pool.DruidDataSource"
+          destroy-method="close" init-method="init" lazy-init="true">
+        <description>只读数据库连接</description>
+        <property name="driverClassName" value="${db.driver}" />
+        <property name="url" value="${db.reader.url}" />
+        <property name="username" value="${db.reader.username}" />
+        <property name="password" value="${db.reader.password}" />
+        <!-- 初始化连接大小 -->
+        <property name="initialSize" value="${db.initialSize}" />
+        <!-- 连接池最大数量 -->
+        <property name="maxActive" value="${db.maxActive}" />
+        <!-- 连接池最小空闲 -->
+        <property name="minIdle" value="${db.minIdle}" />
+        <!-- 获取连接最大等待时间 -->
+        <property name="maxWait" value="${db.maxWait}" />
+        <!-- -->
+        <property name="defaultReadOnly" value="true" />
+        <property name="proxyFilters">
+            <list>
+                <ref bean="stat-filter" />
+            </list>
+        </property>
+        <property name="filters" value="${druid.filters}" />
+        <property name="testWhileIdle" value="true" />
+        <property name="testOnBorrow" value="false" />
+        <property name="testOnReturn" value="false" />
+        <property name="validationQuery" value="SELECT 'x'" />
+        <property name="timeBetweenLogStatsMillis" value="60000" />
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="${db.minEvictableIdleTimeMillis}" />
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="${db.timeBetweenEvictionRunsMillis}" />
+    </bean>
+    <bean id="writeDataSource" class="com.alibaba.druid.pool.DruidDataSource"
+          destroy-method="close" init-method="init" lazy-init="true">
+        <description>只写数据库连接</description>
+        <property name="driverClassName" value="${db.driver}" />
+        <property name="url" value="${db.writer.url}" />
+        <property name="username" value="${db.writer.username}" />
+        <property name="password" value="${db.writer.password}" />
+        <property name="initialSize" value="${db.initialSize}" />
+        <property name="maxActive" value="${db.maxActive}" />
+        <property name="minIdle" value="${db.minIdle}" />
+        <property name="maxWait" value="${db.maxWait}" />
+        <property name="defaultReadOnly" value="false" />
+        <property name="proxyFilters">
+            <list>
+                <ref bean="stat-filter" />
+            </list>
+        </property>
+        <property name="filters" value="${druid.filters}" />
+        <property name="testWhileIdle" value="true" />
+        <property name="testOnBorrow" value="false" />
+        <property name="testOnReturn" value="false" />
+        <property name="validationQuery" value="SELECT 'x'" />
+        <property name="timeBetweenLogStatsMillis" value="60000" />
+        <property name="minEvictableIdleTimeMillis" value="${db.minEvictableIdleTimeMillis}" />
+        <property name="timeBetweenEvictionRunsMillis" value="${db.timeBetweenEvictionRunsMillis}" />
+    </bean>
+    <bean id="dataSource" class="cn.cqbti.core.aspect.ChooseDataSource" lazy-init="true">
+        <description>数据源</description>
+        <property name="targetDataSources">
+            <map key-type="java.lang.String" value-type="javax.sql.DataSource">
+                <!-- write -->
+                <entry key="write" value-ref="writeDataSource" />
+                <!-- read -->
+                <entry key="read" value-ref="readDataSource" />
+            </map>
+        </property>
+        <property name="defaultTargetDataSource" ref="writeDataSource" />
+        <property name="methodType">
+            <map key-type="java.lang.String">
+                <!-- read -->
+                <entry key="read" value=",get,select,count,list,query," />
+                <!-- write -->
+                <entry key="write" value=",add,insert,create,update,delete,remove," />
+            </map>
+        </property>
+    </bean>
+    <!-- 切面 -->
+    <bean class="cn.cqbti.core.aspect.DataSourceAspect" />
+    <!--  -->
+    <bean class="org.springframework.jdbc.core.JdbcTemplate">
+        <constructor-arg ref="dataSource" />
+    </bean>
+
+    <!-- Spring整合Mybatis，更多查看文档：http://mp.baomidou.com -->
+    <bean id="sqlSessionFactory" class="com.baomidou.mybatisplus.spring.MybatisSqlSessionFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <!-- 自动扫描Mapping.xml文件 -->
+        <property name="mapperLocations" value="classpath*:/mybatis/mapper/**/*.xml"/>
+        <property name="configLocation" value="classpath:/mybatis/mybatis-config.xml"/>
+        <property name="typeAliasesPackage" value="cn.cqbti.model"/>
+        <property name="plugins">
+            <array>
+                <!-- 分页插件配置 -->
+                <bean id="paginationInterceptor" class="com.baomidou.mybatisplus.plugins.PaginationInterceptor">
+                </bean>
+            </array>
+        </property>
+        <!-- 全局配置注入 -->
+        <property name="globalConfig" ref="globalConfig" />
+    </bean>
+    <bean id="globalConfig" class="com.baomidou.mybatisplus.entity.GlobalConfiguration">
+        <!--
+            AUTO->`0`("数据库ID自增")
+             INPUT->`1`(用户输入ID")
+            ID_WORKER->`2`("全局唯一ID")
+            UUID->`3`("全局唯一ID")
+        -->
+        <property name="idType" value="2" />
+        <!--
+            MYSQL->`mysql`
+            ORACLE->`oracle`
+            DB2->`db2`
+            H2->`h2`
+            HSQL->`hsql`
+            SQLITE->`sqlite`
+            POSTGRE->`postgresql`
+            SQLSERVER2005->`sqlserver2005`
+            SQLSERVER->`sqlserver`
+        -->
+        <!-- Oracle需要添加该项 -->
+        <!-- <property name="dbType" value="oracle" /> -->
+        <!-- 全局表为下划线命名设置 true -->
+        <!-- <property name="dbColumnUnderline" value="true" /> -->
+        <property name="metaObjectHandler">
+            <bean class="cn.cqbti.core.MyMetaObjectHandler" />
+        </property>
+    </bean>
+
+    <!-- MyBatis 动态扫描  -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="cn.cqbti.mapper"/>
+    </bean>
+    <!-- 事务 -->
+    <bean id="transactionManager"
+          class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+    <tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true" />
+
+</beans>
