@@ -42,5 +42,6 @@
     <dubbo:service interface="cn.cqbti.core.service.TestService"  version="1.0" timeout="5000" ref="testService"/>
 
     <import resource="classpath:spring/dataSource.xml"/>
+    <import resource="classpath:spring/redis.xml"/>
 
 </beans>

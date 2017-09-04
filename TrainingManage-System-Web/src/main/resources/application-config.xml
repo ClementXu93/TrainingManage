@@ -21,4 +21,6 @@
     <!--调用dubbo服务 目前没找到好的方法 只能通过xml配置完成reference-->
     <dubbo:reference id="testService"
                      interface="cn.cqbti.core.service.TestService"  version="1.0" timeout="20000" check="false"/>
+
+    <import resource="classpath:spring/redis.xml"/>
 </beans>
