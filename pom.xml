@@ -18,7 +18,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!--端口号-->
+        <!--端口号lim test change-->
         <server.port>8080</server.port>
         <!--spring-->
         <spring.version>4.3.10.RELEASE</spring.version>
